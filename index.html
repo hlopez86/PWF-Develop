@@ -284,6 +284,44 @@
   .rag-baja{ background:#E2E8F0; color:#475569; border:1px solid #CBD5E1; }
   .rag-sin{ background:#F1F5F9; color:#94A3B8; border:1px solid #E2E8F0; }
 
+  /* ===== PANTALLA DE ACCESO (login) ===== */
+  #login-gate{
+    position:fixed; inset:0; z-index:999; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  #login-gate.hidden{ display:none; }
+  .login-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:34px 30px; max-width:360px; width:100%; box-shadow:0 12px 40px rgba(0,0,0,.10);
+  }
+  .login-logo{
+    width:44px; height:44px; border-radius:12px; background:var(--green);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700;
+    font-family:'JetBrains Mono', monospace; font-size:14px; margin:0 auto 16px;
+  }
+  .login-title{ text-align:center; font-size:16px; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .login-sub{ text-align:center; font-size:11.5px; color:var(--muted); margin-bottom:22px; }
+  .login-field{ margin-bottom:14px; }
+  .login-field label{
+    font-family:'JetBrains Mono', monospace; font-size:9.5px; letter-spacing:.03em;
+    color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px;
+  }
+  .login-pass-wrap{ position:relative; }
+  .login-pass-wrap .field-input{ padding-right:38px; }
+  .login-toggle-clave{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    background:none; border:none; font-size:14px; cursor:pointer; color:var(--muted); padding:4px;
+  }
+  .login-error{
+    font-size:11.5px; color:var(--danger); margin-bottom:10px; text-align:center;
+  }
+  .login-btn{
+    width:100%; padding:10px; border-radius:10px; border:none; cursor:pointer;
+    background:var(--green); color:#fff; font-weight:600; font-size:13px;
+    box-shadow:0 4px 14px rgba(0,100,78,0.22);
+  }
+  .login-btn:hover{ background:var(--green-dim); }
+
   /* ===== MODO OSCURO ===== */
   html[data-theme="dark"]{
     --bg: #0B1210;
@@ -373,8 +411,32 @@
 </head>
 <body class="min-h-screen pb-28">
 
+  <!-- ===== PANTALLA DE ACCESO ===== -->
+  <div id="login-gate">
+    <div class="login-card">
+      <div class="login-logo">PF</div>
+      <p class="login-title">Acceso restringido</p>
+      <p class="login-sub">Powerfleet · Control de Flota</p>
+      <form id="login-form">
+        <div class="login-field">
+          <label>Usuario</label>
+          <input type="text" id="login-usuario" class="field-input" style="--tag-color:var(--green)" autocomplete="username" placeholder="tu.usuario">
+        </div>
+        <div class="login-field">
+          <label>Contraseña</label>
+          <div class="login-pass-wrap">
+            <input type="password" id="login-clave" class="field-input" style="--tag-color:var(--green)" autocomplete="current-password" placeholder="••••••••">
+            <button type="button" id="login-toggle-clave" class="login-toggle-clave" title="Mostrar/ocultar contraseña">👁</button>
+          </div>
+        </div>
+        <p id="login-error" class="login-error hidden">Usuario o contraseña incorrectos.</p>
+        <button type="submit" class="login-btn">Entrar</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ===== HEADER / CONSOLE BAR ===== -->
-  <div class="app-shell">
+  <div class="app-shell" id="app-shell" style="display:none">
 
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar" id="sidebar">
@@ -416,6 +478,10 @@
           <span class="nav-item-icon">📈</span>
           <span class="nav-item-label">Ver Excel ↗</span>
         </a>
+        <button type="button" id="btn-cerrar-sesion" class="sidebar-footer-link" style="width:100%; border:none; background:none; cursor:pointer; text-align:left;">
+          <span class="nav-item-icon">🔒</span>
+          <span class="nav-item-label">Cerrar sesión</span>
+        </button>
       </div>
     </aside>
 
@@ -723,6 +789,64 @@
   </div>
 
 <script>
+  // ==================================================================
+  // ===== PANTALLA DE ACCESO (login) =====
+  // ==================================================================
+  // EDITA esta lista: agrega, quita o cambia usuarios/contraseñas antes de publicar.
+  // ⚠️ Esto es un candado visual, no seguridad real: el código es visible para
+  // cualquiera que abra "Ver código fuente" en el navegador. No reutilices aquí
+  // contraseñas que uses en otros sistemas.
+  const PF_USUARIOS = [
+    { usuario: 'hlopez',    clave: 'Pointer26hz' },
+    { usuario: 'ntrujillo', clave: 'Pointer26rj' },
+    { usuario: 'fdiaz',     clave: 'Pointer26az' },
+    { usuario: 'nvega',     clave: 'Pointer26nv' }
+  ];
+
+  const PF_SESSION_KEY = 'pf-auth-usuario';
+
+  function pfDesbloquearApp(){
+    document.getElementById('login-gate').classList.add('hidden');
+    document.getElementById('app-shell').style.display = 'flex';
+  }
+
+  function pfIntentarLogin(){
+    const usuario = document.getElementById('login-usuario').value.trim();
+    const clave = document.getElementById('login-clave').value;
+    const errorEl = document.getElementById('login-error');
+
+    const match = PF_USUARIOS.find(u =>
+      u.usuario.toLowerCase() === usuario.toLowerCase() && u.clave === clave
+    );
+
+    if(match){
+      errorEl.classList.add('hidden');
+      try{ sessionStorage.setItem(PF_SESSION_KEY, match.usuario); }catch(e){}
+      pfDesbloquearApp();
+    } else {
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    pfIntentarLogin();
+  });
+
+  document.getElementById('login-toggle-clave').addEventListener('click', () => {
+    const input = document.getElementById('login-clave');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // Si ya inició sesión antes en esta pestaña/navegador, no vuelve a pedir el login
+  (function pfVerificarSesionGuardada(){
+    let usuarioGuardado = null;
+    try{ usuarioGuardado = sessionStorage.getItem(PF_SESSION_KEY); }catch(e){}
+    if(usuarioGuardado && PF_USUARIOS.some(u => u.usuario === usuarioGuardado)){
+      pfDesbloquearApp();
+    }
+  })();
+
   const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzMdC0ULJiYaOM1as7mOgKKFKJUWYUyo_zAX-xowRCXGHnlxw7-Qan44CVRNBQ3b9NXww/exec';
 
   const config = [
@@ -882,6 +1006,15 @@
     const colapsado = sidebarEl.classList.toggle('collapsed');
     document.documentElement.style.setProperty('--sidebar-w', colapsado ? '76px' : '250px');
     document.getElementById('sidebar-toggle').textContent = colapsado ? '›' : '‹';
+  });
+
+  // ===== Cerrar sesión =====
+  document.getElementById('btn-cerrar-sesion').addEventListener('click', () => {
+    try{ sessionStorage.removeItem(PF_SESSION_KEY); }catch(e){}
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('login-gate').classList.remove('hidden');
+    document.getElementById('login-usuario').value = '';
+    document.getElementById('login-clave').value = '';
   });
 
   // ===== Modo oscuro (persistente) =====
