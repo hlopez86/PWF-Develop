@@ -561,6 +561,28 @@
         <p id="estado-cuenta" class="mono text-[11px] mt-2"></p>
       </div>
 
+      <div id="cuenta-info-extra" class="hidden bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-5 mb-5 shadow-sm">
+        <p class="mono text-[10px] tracking-widest text-[var(--muted)] uppercase mb-3">Datos de la cuenta</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <p class="mono text-[9.5px] text-[var(--muted)] uppercase">Ejecutivo</p>
+            <p id="cuenta-info-ejecutivo" class="text-[13px] font-medium text-[var(--text)] mt-0.5">—</p>
+          </div>
+          <div>
+            <p class="mono text-[9.5px] text-[var(--muted)] uppercase">Suscriptor</p>
+            <p id="cuenta-info-suscriptor" class="text-[13px] font-medium text-[var(--text)] mt-0.5">—</p>
+          </div>
+          <div>
+            <p class="mono text-[9.5px] text-[var(--muted)] uppercase">Inicio de Vigencia</p>
+            <p id="cuenta-info-inicio" class="text-[13px] font-medium text-[var(--text)] mt-0.5">—</p>
+          </div>
+          <div>
+            <p class="mono text-[9.5px] text-[var(--muted)] uppercase">Fin de Vigencia</p>
+            <p id="cuenta-info-fin" class="text-[13px] font-medium text-[var(--text)] mt-0.5">—</p>
+          </div>
+        </div>
+      </div>
+
       <div id="kpi-cuenta" class="flex flex-wrap gap-3 mb-5"></div>
 
       <div class="tabla-cuenta-scroll rounded-2xl border border-[var(--line)] bg-white shadow-sm">
@@ -797,10 +819,10 @@
   // cualquiera que abra "Ver código fuente" en el navegador. No reutilices aquí
   // contraseñas que uses en otros sistemas.
   const PF_USUARIOS = [
-    { usuario: 'hlopez',    clave: 'Pointer26hz' },
-    { usuario: 'ntrujillo', clave: 'Pointer26rj' },
-    { usuario: 'fdiaz',     clave: 'Pointer26az' },
-    { usuario: 'nvega',     clave: 'Pointer26nv' }
+    { usuario: 'hlopez',    clave: 'CAMBIA-ESTA-CLAVE-1' },
+    { usuario: 'ntrujillo', clave: 'CAMBIA-ESTA-CLAVE-2' },
+    { usuario: 'fdiaz',     clave: 'CAMBIA-ESTA-CLAVE-3' },
+    { usuario: 'admin',     clave: 'CAMBIA-ESTA-CLAVE-4' }
   ];
 
   const PF_SESSION_KEY = 'pf-auth-usuario';
@@ -1187,6 +1209,7 @@
     listaCuenta.innerHTML = '';
     btnExportarCuenta.classList.add('hidden');
     btnConstanciaCuenta.classList.add('hidden');
+    document.getElementById('cuenta-info-extra').classList.add('hidden');
     ultimosRegistrosCuenta = [];
     ultimaCuentaBuscada = valor;
 
@@ -1202,6 +1225,13 @@
         ultimosRegistrosCuenta = data.registros;
         btnExportarCuenta.classList.remove('hidden');
         btnConstanciaCuenta.classList.remove('hidden');
+
+        const primero = data.registros[0];
+        document.getElementById('cuenta-info-ejecutivo').textContent = primero.c6 || '—';
+        document.getElementById('cuenta-info-suscriptor').textContent = primero.c22 || '—';
+        document.getElementById('cuenta-info-inicio').textContent = primero.c9 || '—';
+        document.getElementById('cuenta-info-fin').textContent = primero.c10 || '—';
+        document.getElementById('cuenta-info-extra').classList.remove('hidden');
       } else {
         estadoCuenta.textContent = data.error || 'No se encontraron registros para esa cuenta.';
         estadoCuenta.style.color = 'var(--danger)';
@@ -1215,13 +1245,17 @@
   function exportarExcelCuenta(){
     if(!ultimosRegistrosCuenta.length || typeof XLSX === 'undefined') return;
 
-    const encabezados = ['Caso', 'Asignación', 'Nombre de la Cuenta', 'Marca', 'Submarca', 'Año', 'N. Serie', 'Estatus', 'AP'];
-    const filas = ultimosRegistrosCuenta.map(r => [
-      r.c3 || '', r.c5 || '', r.c8 || '', r.c13 || '', r.c14 || '', r.c15 || '', r.c16 || '', r.c25 || '', r.c42 || ''
-    ]);
+    // Encabezados: usa las mismas etiquetas del formulario de Registro para las columnas 1 a 52 (A a AZ)
+    const encabezados = [];
+    for(let i = 1; i <= 52; i++){
+      const c = config.find(x => x.n === i);
+      encabezados.push(c ? limpiarLabel(c.l) : ('Columna ' + i));
+    }
+
+    const filas = ultimosRegistrosCuenta.map(r => r.completo || []);
 
     const ws = XLSX.utils.aoa_to_sheet([encabezados, ...filas]);
-    ws['!cols'] = [{wch:14},{wch:16},{wch:26},{wch:14},{wch:14},{wch:8},{wch:20},{wch:28},{wch:12}];
+    ws['!cols'] = encabezados.map(() => ({ wch: 18 }));
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Registros');
