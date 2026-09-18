@@ -214,7 +214,7 @@
   }
   #seg-constancia .ctc-btn-mini:hover{ background:#ffe7e7; }
   #seg-constancia .ctc-preview{
-    width:100%; max-width:680px; margin:0 auto; background:#fff;
+    width:100%; max-width:680px; margin:0 auto; background:#fff; color:#1b1b1b;
     padding:25px 55px 35px 55px; border:1px solid #ddd; position:relative;
     word-wrap:break-word; overflow-wrap:break-word;
   }
@@ -226,9 +226,9 @@
   #seg-constancia .ctc-preview table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
   #seg-constancia .ctc-preview thead{ display:table-header-group; } /* repite encabezado en cada página al imprimir */
   #seg-constancia .ctc-preview tr{ page-break-inside:avoid; break-inside:avoid; }
-  #seg-constancia .ctc-preview th{ background:var(--ctc-pf-green); color:#fff; padding:6px; border:1px solid #2a6a57; }
+  #seg-constancia .ctc-preview th{ background:#0c3b2e; color:#ffffff; padding:6px; border:1px solid #2a6a57; }
   #seg-constancia .ctc-preview td{
-    border:1px solid var(--ctc-border); padding:4px; text-align:center;
+    border:1px solid #d9d9d9; padding:4px; text-align:center; color:#1b1b1b;
     word-break:break-word; max-width:150px;
   }
   #seg-constancia .ctc-firma{ margin-top:34px; }
@@ -1574,7 +1574,7 @@
       margin: 5,
       filename,
       image: { type:"jpeg", quality:0.98 },
-      html2canvas: { scale:2, logging:false },
+      html2canvas: { scale:2, logging:false, backgroundColor:'#ffffff' },
       jsPDF: { unit:"mm", format:"a4", orientation:"portrait" },
       pagebreak: { mode: ['css', 'legacy'] }
     };
