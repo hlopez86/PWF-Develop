@@ -284,6 +284,16 @@
   .rag-baja{ background:#E2E8F0; color:#475569; border:1px solid #CBD5E1; }
   .rag-sin{ background:#F1F5F9; color:#94A3B8; border:1px solid #E2E8F0; }
 
+  .metric-chip{
+    display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px;
+    font-size:10px; font-weight:700; white-space:nowrap;
+  }
+  .metric-chip-uis{ background:#DBEAFE; color:#1D4ED8; }
+  .metric-chip-tier{ background:#EDE9FE; color:#6D28D9; }
+  .metric-chip-arr{ background:#DCFCE7; color:#15803D; }
+  .metric-chip-mrr{ background:#FFEDD5; color:#C2410C; }
+  .metric-chip-arpu{ background:#CCFBF1; color:#0F766E; }
+
   /* ===== PANTALLA DE ACCESO (login) ===== */
   #login-gate{
     position:fixed; inset:0; z-index:999; background:var(--bg);
@@ -755,6 +765,29 @@
         <input type="text" id="cc-buscar" placeholder="Escribe al menos 4 caracteres…" class="field-input" style="--tag-color:#0E9488">
         <p class="text-[11px] text-[var(--muted)] mt-2">Se muestran hasta 5 coincidencias con su semáforo RAG.</p>
         <div id="cc-resultados" class="hidden mt-3 rounded-xl border border-[var(--line)] overflow-hidden bg-white"></div>
+      </div>
+
+      <div id="cc-resumen" class="hidden flex flex-wrap gap-3 mb-7">
+        <div class="kpi-card" style="--tag-color:#1D4ED8">
+          <p class="mono text-[10px] uppercase" style="color:#1D4ED8">Total UIS Ago 2026</p>
+          <p class="text-[22px] font-semibold text-[var(--text)]" id="cc-resumen-uis">0</p>
+        </div>
+        <div class="kpi-card" style="--tag-color:#15803D">
+          <p class="mono text-[10px] uppercase" style="color:#15803D">Total ARR</p>
+          <p class="text-[22px] font-semibold text-[var(--text)]" id="cc-resumen-arr">$0</p>
+        </div>
+        <div class="kpi-card" style="--tag-color:#C2410C">
+          <p class="mono text-[10px] uppercase" style="color:#C2410C">Total MRR</p>
+          <p class="text-[22px] font-semibold text-[var(--text)]" id="cc-resumen-mrr">$0</p>
+        </div>
+        <div class="kpi-card" style="--tag-color:#0F766E">
+          <p class="mono text-[10px] uppercase" style="color:#0F766E">ARPU promedio</p>
+          <p class="text-[22px] font-semibold text-[var(--text)]" id="cc-resumen-arpu">$0</p>
+        </div>
+        <div class="kpi-card" style="--tag-color:var(--text)">
+          <p class="mono text-[10px] uppercase text-[var(--muted)]">Cuentas encontradas</p>
+          <p class="text-[22px] font-semibold text-[var(--text)]" id="cc-resumen-total">0</p>
+        </div>
       </div>
 
       <div class="bg-[var(--panel)] border border-[var(--line)] rounded-2xl p-5 mb-7 shadow-sm">
@@ -1967,6 +2000,7 @@
     if(valor.length < 4){
       ccResultados.classList.add('hidden');
       ccResultados.innerHTML = '';
+      document.getElementById('cc-resumen').classList.add('hidden');
       return;
     }
     ccDebounce = setTimeout(() => ccEjecutarBusqueda(valor), 350);
@@ -1987,6 +2021,34 @@
     return '$' + num.toLocaleString('es-MX', { maximumFractionDigits: 0 });
   }
 
+  function ccMostrarResumen(resultados){
+    const resumenBox = document.getElementById('cc-resumen');
+    if(!resultados.length){
+      resumenBox.classList.add('hidden');
+      return;
+    }
+
+    let totalUis = 0, totalArr = 0, totalMrr = 0, sumaArpu = 0, conteoArpu = 0;
+    resultados.forEach(r => {
+      const uis = parseFloat(r.uisAgo);
+      if(!isNaN(uis)) totalUis += uis;
+      const arr = parseFloat(r.cc24);
+      if(!isNaN(arr)) totalArr += arr;
+      const mrr = parseFloat(r.cc25);
+      if(!isNaN(mrr)) totalMrr += mrr;
+      const arpu = parseFloat(r.cc26);
+      if(!isNaN(arpu)){ sumaArpu += arpu; conteoArpu++; }
+    });
+    const arpuProm = conteoArpu > 0 ? sumaArpu / conteoArpu : 0;
+
+    document.getElementById('cc-resumen-uis').textContent = totalUis.toLocaleString('es-MX');
+    document.getElementById('cc-resumen-arr').textContent = '$' + totalArr.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+    document.getElementById('cc-resumen-mrr').textContent = '$' + totalMrr.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+    document.getElementById('cc-resumen-arpu').textContent = '$' + arpuProm.toLocaleString('es-MX', { maximumFractionDigits: 0 });
+    document.getElementById('cc-resumen-total').textContent = resultados.length;
+    resumenBox.classList.remove('hidden');
+  }
+
   async function ccEjecutarBusqueda(valor){
     ccResultados.classList.remove('hidden');
     ccResultados.innerHTML = '<p class="mono text-[11px] text-[var(--muted)] px-3 py-2.5">Buscando…</p>';
@@ -2002,20 +2064,23 @@
               <span class="rag-badge ${ccRagClase(r.cc27)}">${r.cc27 || 'Sin RAG'}</span>
             </span>
             <span class="mono text-[10px] text-[var(--muted)]">No ${r.cc1 || '—'} · Cliente ${r.cc5 || '—'} · Ejecutivo ${r.cc2 || '—'}</span>
-            <span class="mono text-[10px] text-[var(--muted)] flex flex-wrap gap-x-3 mt-1">
-              <span>UIS Ago 2026: <b style="color:var(--text)">${r.uisAgo || '—'}</b></span>
-              <span>TIER MRR: <b style="color:var(--text)">${r.cc23 || '—'}</b></span>
-              <span>ARR: <b style="color:var(--text)">${ccFormatoMoneda(r.cc24)}</b></span>
-              <span>MRR: <b style="color:var(--text)">${ccFormatoMoneda(r.cc25)}</b></span>
-              <span>ARPU: <b style="color:var(--text)">${ccFormatoMoneda(r.cc26)}</b></span>
+            <span class="flex flex-wrap gap-1.5 mt-1.5">
+              <span class="metric-chip metric-chip-uis">UIS Ago: ${r.uisAgo || '—'}</span>
+              <span class="metric-chip metric-chip-tier">TIER MRR: ${r.cc23 || '—'}</span>
+              <span class="metric-chip metric-chip-arr">ARR: ${ccFormatoMoneda(r.cc24)}</span>
+              <span class="metric-chip metric-chip-mrr">MRR: ${ccFormatoMoneda(r.cc25)}</span>
+              <span class="metric-chip metric-chip-arpu">ARPU: ${ccFormatoMoneda(r.cc26)}</span>
             </span>
           </button>`).join('');
 
         ccResultados.querySelectorAll('[data-fila]').forEach(btn=>{
           btn.addEventListener('click', () => ccCargarPorFila(parseInt(btn.dataset.fila)));
         });
+
+        ccMostrarResumen(data.resultados);
       } else {
         ccResultados.innerHTML = `<p class="mono text-[11px] px-3 py-2.5" style="color:var(--danger)">${data.error || 'Sin coincidencias'}</p>`;
+        document.getElementById('cc-resumen').classList.add('hidden');
       }
     } catch(e){
       ccResultados.innerHTML = `<p class="mono text-[11px] px-3 py-2.5" style="color:var(--danger)">Error de búsqueda: ${e}</p>`;
